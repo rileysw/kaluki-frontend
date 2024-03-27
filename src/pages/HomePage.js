@@ -1,23 +1,14 @@
-import { useEffect, useState } from "react";
 import { Button, Container, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import useWebSocket from "react-use-websocket";
+import PlayersReady from "../components/PlayersReady";
 
 function HomePage() {
   const navigate = useNavigate();
-  const { lastJsonMessage } = useWebSocket(
-    "ws://localhost:8000/get_ready_players"
-  );
-  const [players, setPlayers] = useState([]);
-
-  useEffect(() => {
-    setPlayers(JSON.parse(lastJsonMessage));
-  }, [lastJsonMessage]);
 
   const handleSubmit = (event) => {
     fetch("http://localhost:8000/add_player/" + event.target[0].value)
       .then(() => {
-        navigate("/ready");
+        navigate("/ready", { state: { name: event.target[0].value } });
       })
       .catch((err) => {
         console.log(err);
@@ -32,11 +23,7 @@ function HomePage() {
         <Form.Control placeholder="Insert Name" />
         <Button type="submit">Submit</Button>
       </Form>
-      <h2>Players Ready</h2>
-      {players !== null &&
-        players.map((name) => {
-          return <p>{name}</p>;
-        })}
+      <PlayersReady />
     </Container>
   );
 }
