@@ -8,7 +8,7 @@ function ReadyPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { sendJsonMessage, lastJsonMessage } = useWebSocket(
-    "ws://localhost:8000/update_players"
+    "ws://localhost:8000/setup_game"
   );
   const [players, setPlayers] = useState([]);
 
@@ -21,14 +21,19 @@ function ReadyPage() {
     let response = JSON.parse(lastJsonMessage);
     if (response !== null) {
       setPlayers(response.players);
-      if (response.user == location.state.user && response.method == "remove") {
+      if (response.user === location.state.user && response.method === "remove") {
         navigate("/");
+      } else if (response.method === "start") {
+        navigate("/play", {
+          state: { user: location.state.user, players: response.players },
+        });
       }
     }
   }, [lastJsonMessage]);
 
   const handleStart = () => {
-    navigate("/play", { state: { user: location.state.user } });
+    let data = { user: location.state.user, method: "start" };
+    sendJsonMessage(data);
   };
 
   const handleLeave = (event) => {

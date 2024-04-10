@@ -7,7 +7,7 @@ import PlayersReady from "../components/PlayersReady";
 function HomePage() {
   const navigate = useNavigate();
   const { sendJsonMessage, lastJsonMessage } = useWebSocket(
-    "ws://localhost:8000/update_players"
+    "ws://localhost:8000/setup_game"
   );
   const [user, setUser] = useState("");
   const [players, setPlayers] = useState([]);
@@ -21,7 +21,7 @@ function HomePage() {
     let response = JSON.parse(lastJsonMessage);
     if (response !== null) {
       setPlayers(response.players);
-      if (response.user == user && response.method == "add") {
+      if (response.user === user && response.method === "add") {
         navigate("/ready", { state: { user: user } });
       }
     }
