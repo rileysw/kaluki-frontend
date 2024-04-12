@@ -1,24 +1,31 @@
-import { useEffect, useState } from "react";
-import { Col, Container, Image, Row } from "react-bootstrap";
+import { forwardRef, useEffect, useState, useRef } from "react";
+import { Button, Col, Container, Image, Row } from "react-bootstrap";
 import { useLocation } from "react-router-dom";
+import useWebSocket from "react-use-websocket";
 import { Reorder } from "framer-motion";
 
 function PlayPage() {
   const location = useLocation();
+  const { sendJsonMessage, lastJsonMessage } = useWebSocket(
+    "ws://localhost:8000/play_game"
+  );
   const [players, setPlayers] = useState([]);
   const [hand, setHand] = useState([]);
+  const [trashCard, setTrashCard] = useState([]);
+  const trashRef = useRef(null);
 
   const images = require.context("../assets", true);
-  const CardImage = ({ name }) => {
+  const CardImage = forwardRef(({ name }, ref) => {
     let imageSrc = "./" + name + ".png";
     return (
       <Image
+        ref={ref}
         src={images(imageSrc)}
         style={{ backgroundColor: "white", width: "5vw" }}
         draggable={false}
       />
     );
-  };
+  });
 
   useEffect(() => {
     // initialize players
@@ -46,6 +53,43 @@ function PlayPage() {
       .catch((err) => console.log(err));
   }, []);
 
+  useEffect(() => {
+    let response = JSON.parse(lastJsonMessage);
+    if (response !== null) {
+      if (response.method === "trash") {
+        if (response.user === location.state.user) {
+          setHand(response.hand);
+        }
+        setTrashCard(response.card);
+      }
+    }
+  }, [lastJsonMessage]);
+
+  const drawCard = () => {
+    let data = { user: location.state.user, hand: hand };
+    fetch("http://localhost:8000/draw_card/", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .then((data) => setHand(data))
+      .catch((err) => console.log(err));
+  };
+
+  const trash = (cardIndex) => {
+    let data = {
+      user: location.state.user,
+      method: "trash",
+      index: cardIndex,
+      hand: hand,
+    };
+    sendJsonMessage(data);
+  };
+
   return (
     <Container fluid style={{ height: "100vh" }}>
       <Row style={{ height: "30%" }}>
@@ -58,7 +102,19 @@ function PlayPage() {
           <h5>{players[1]}</h5>
         </Col>
         <Col style={{ textAlign: "center" }}>
-          <CardImage name="back@2x" />
+          <Row>
+            <Col>
+              <Button variant="link" onClick={drawCard}>
+                <CardImage name="back@2x" />
+              </Button>
+            </Col>
+            <Col>
+              <CardImage
+                ref={trashRef}
+                name={trashCard.length === 0 ? "back@2x" : trashCard[0]}
+              />
+            </Col>
+          </Row>
         </Col>
         <Col style={{ textAlign: "right" }}>
           <h5>{players[3]}</h5>
@@ -74,12 +130,27 @@ function PlayPage() {
             style={{ listStyleType: "none" }}
           >
             {hand !== null &&
-              hand.map((card) => {
+              hand.map((card, index) => {
                 return (
                   <Reorder.Item
                     key={card}
                     value={card}
                     style={{ display: "inline-block" }}
+                    drag
+                    onDragEnd={(_, info) => {
+                      if (
+                        trashRef.current.getBoundingClientRect().left <=
+                          info.point.x &&
+                        info.point.x <=
+                          trashRef.current.getBoundingClientRect().right &&
+                        trashRef.current.getBoundingClientRect().top <=
+                          info.point.y &&
+                        info.point.y <=
+                          trashRef.current.getBoundingClientRect().bottom
+                      ) {
+                        trash(index);
+                      }
+                    }}
                   >
                     <CardImage name={card[0]} />
                   </Reorder.Item>
