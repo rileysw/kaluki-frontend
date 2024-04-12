@@ -21,11 +21,18 @@ function ReadyPage() {
     let response = JSON.parse(lastJsonMessage);
     if (response !== null) {
       setPlayers(response.players);
-      if (response.user === location.state.user && response.method === "remove") {
+      if (
+        response.user === location.state.user &&
+        response.method === "remove"
+      ) {
         navigate("/");
       } else if (response.method === "start") {
         navigate("/play", {
-          state: { user: location.state.user, players: response.players },
+          state: {
+            user: location.state.user,
+            players: response.players,
+            turn: response.turn,
+          },
         });
       }
     }

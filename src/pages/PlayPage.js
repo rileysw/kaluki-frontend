@@ -10,6 +10,7 @@ function PlayPage() {
     "ws://localhost:8000/play_game"
   );
   const [players, setPlayers] = useState([]);
+  const [turn, setTurn] = useState("");
   const [hand, setHand] = useState([]);
   const [trashCard, setTrashCard] = useState([]);
   const trashRef = useRef(null);
@@ -46,6 +47,9 @@ function PlayPage() {
     }
     setPlayers(playerOrder);
 
+    // initialize turn
+    setTurn(location.state.turn);
+
     // initialize hand
     fetch("http://localhost:8000/player_hand/" + location.state.user)
       .then((res) => res.json())
@@ -61,9 +65,10 @@ function PlayPage() {
           setHand(response.hand);
         }
         setTrashCard(response.card);
+        setTurn(response.turn);
       }
     }
-  }, [lastJsonMessage]);
+  }, [turn, lastJsonMessage]);
 
   const drawCard = () => {
     let data = { user: location.state.user, hand: hand };
@@ -94,17 +99,25 @@ function PlayPage() {
     <Container fluid style={{ height: "100vh" }}>
       <Row style={{ height: "30%" }}>
         <Col style={{ textAlign: "center" }}>
-          <h5>{players[2]}</h5>
+          <h5 style={{ color: turn === players[2] ? "orange" : "white" }}>
+            {players[2]}
+          </h5>
         </Col>
       </Row>
       <Row style={{ height: "30%" }}>
         <Col>
-          <h5>{players[1]}</h5>
+          <h5 style={{ color: turn === players[1] ? "orange" : "white" }}>
+            {players[1]}
+          </h5>
         </Col>
         <Col style={{ textAlign: "center" }}>
           <Row>
             <Col>
-              <Button variant="link" onClick={drawCard}>
+              <Button
+                variant="link"
+                onClick={drawCard}
+                disabled={location.state.user !== turn}
+              >
                 <CardImage name="back@2x" />
               </Button>
             </Col>
@@ -117,12 +130,16 @@ function PlayPage() {
           </Row>
         </Col>
         <Col style={{ textAlign: "right" }}>
-          <h5>{players[3]}</h5>
+          <h5 style={{ color: turn === players[3] ? "orange" : "white" }}>
+            {players[3]}
+          </h5>
         </Col>
       </Row>
       <Row style={{ height: "40%" }}>
         <Col style={{ textAlign: "center" }}>
-          <h5>{players[0]}</h5>
+          <h5 style={{ color: turn === players[0] ? "orange" : "white" }}>
+            {players[0]}
+          </h5>
           <Reorder.Group
             axis="x"
             values={hand}
@@ -139,6 +156,7 @@ function PlayPage() {
                     drag
                     onDragEnd={(_, info) => {
                       if (
+                        location.state.user === turn &&
                         trashRef.current.getBoundingClientRect().left <=
                           info.point.x &&
                         info.point.x <=
