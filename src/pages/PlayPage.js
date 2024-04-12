@@ -14,6 +14,7 @@ function PlayPage() {
   const [hand, setHand] = useState([]);
   const [trashCard, setTrashCard] = useState([]);
   const trashRef = useRef(null);
+  const [hasDrawn, setHasDrawn] = useState(false);
 
   const images = require.context("../assets", true);
   const CardImage = forwardRef(({ name }, ref) => {
@@ -49,6 +50,9 @@ function PlayPage() {
 
     // initialize turn
     setTurn(location.state.turn);
+    if (location.state.turn === location.state.user) {
+      setHasDrawn(true);
+    }
 
     // initialize hand
     fetch("http://localhost:8000/player_hand/" + location.state.user)
@@ -65,6 +69,7 @@ function PlayPage() {
           setHand(response.hand);
         }
         setTrashCard(response.card);
+        setHasDrawn(false);
         setTurn(response.turn);
       }
     }
@@ -81,7 +86,10 @@ function PlayPage() {
       body: JSON.stringify(data),
     })
       .then((res) => res.json())
-      .then((data) => setHand(data))
+      .then((data) => {
+        setHand(data);
+        setHasDrawn(true);
+      })
       .catch((err) => console.log(err));
   };
 
@@ -116,7 +124,7 @@ function PlayPage() {
               <Button
                 variant="link"
                 onClick={drawCard}
-                disabled={location.state.user !== turn}
+                disabled={location.state.user !== turn || hasDrawn}
               >
                 <CardImage name="back@2x" />
               </Button>
@@ -157,6 +165,7 @@ function PlayPage() {
                     onDragEnd={(_, info) => {
                       if (
                         location.state.user === turn &&
+                        hasDrawn &&
                         trashRef.current.getBoundingClientRect().left <=
                           info.point.x &&
                         info.point.x <=
