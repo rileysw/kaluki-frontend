@@ -55,6 +55,9 @@ function PlayPage() {
         setTurn(data.turn);
         setHand(data.hand);
         setHasDrawn(data.hasDrawn);
+        if (data.trashCard !== null) {
+          setTrashCard(data.trashCard);
+        }
       })
       .catch((err) => console.log(err));
   }, []);
@@ -66,7 +69,7 @@ function PlayPage() {
         if (response.user === location.state.user) {
           setHand(response.hand);
         }
-        setTrashCard(response.card);
+        setTrashCard(response.trashCard);
         setTurn(response.turn);
         setHasDrawn(response.hasDrawn);
       }
