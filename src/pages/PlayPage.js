@@ -48,16 +48,14 @@ function PlayPage() {
     }
     setPlayers(playerOrder);
 
-    // initialize turn
-    setTurn(location.state.turn);
-    if (location.state.turn === location.state.user) {
-      setHasDrawn(true);
-    }
-
-    // initialize hand
-    fetch("http://localhost:8000/player_hand/" + location.state.user)
+    // initialize turn, hand, and hasDrawn
+    fetch("http://localhost:8000/game_info/" + location.state.user)
       .then((res) => res.json())
-      .then((data) => setHand(data))
+      .then((data) => {
+        setTurn(data.turn);
+        setHand(data.hand);
+        setHasDrawn(data.hasDrawn);
+      })
       .catch((err) => console.log(err));
   }, []);
 
@@ -69,8 +67,8 @@ function PlayPage() {
           setHand(response.hand);
         }
         setTrashCard(response.card);
-        setHasDrawn(false);
         setTurn(response.turn);
+        setHasDrawn(response.hasDrawn);
       }
     }
   }, [turn, lastJsonMessage]);
@@ -87,8 +85,8 @@ function PlayPage() {
     })
       .then((res) => res.json())
       .then((data) => {
-        setHand(data);
-        setHasDrawn(true);
+        setHand(data.hand);
+        setHasDrawn(data.hasDrawn);
       })
       .catch((err) => console.log(err));
   };

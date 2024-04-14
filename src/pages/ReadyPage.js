@@ -31,7 +31,6 @@ function ReadyPage() {
           state: {
             user: location.state.user,
             players: response.players,
-            turn: response.turn,
           },
         });
       }
