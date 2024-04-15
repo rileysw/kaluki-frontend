@@ -94,11 +94,11 @@ function PlayPage() {
       .catch((err) => console.log(err));
   };
 
-  const trash = (cardIndex) => {
+  const trash = (cardId) => {
     let data = {
       user: location.state.user,
       method: "trash",
-      index: cardIndex,
+      cardId: cardId,
       hand: hand,
     };
     sendJsonMessage(data);
@@ -144,11 +144,11 @@ function PlayPage() {
           </h5>
         </Col>
       </Row>
-      <Row style={{ height: "40%" }}>
-        <Col style={{ textAlign: "center" }}>
-          <h5 style={{ color: turn === players[0] ? "orange" : "white" }}>
-            {players[0]}
-          </h5>
+      <Row style={{ height: "40%", textAlign: "center" }}>
+        <h5 style={{ color: turn === players[0] ? "orange" : "white" }}>
+          {players[0]}
+        </h5>
+        <Col>
           <Reorder.Group
             axis="x"
             values={hand}
@@ -156,7 +156,7 @@ function PlayPage() {
             style={{ listStyleType: "none" }}
           >
             {hand !== null &&
-              hand.map((card, index) => {
+              hand.map((card) => {
                 return (
                   <Reorder.Item
                     key={card}
@@ -176,7 +176,7 @@ function PlayPage() {
                         info.point.y <=
                           trashRef.current.getBoundingClientRect().bottom
                       ) {
-                        trash(index);
+                        trash(card[2]);
                       }
                     }}
                   >
@@ -185,6 +185,11 @@ function PlayPage() {
                 );
               })}
           </Reorder.Group>
+        </Col>
+        <Col xs={2}>
+          <Button disabled={location.state.user !== turn || !hasDrawn}>
+            Laydown
+          </Button>
         </Col>
       </Row>
     </Container>
