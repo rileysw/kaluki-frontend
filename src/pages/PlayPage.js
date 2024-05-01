@@ -1,8 +1,11 @@
-import { forwardRef, useEffect, useState, useRef } from "react";
-import { Button, Col, Container, Image, Row } from "react-bootstrap";
+import { useEffect, useState, useRef } from "react";
+import { Button, Col, Container, Row } from "react-bootstrap";
 import { useLocation } from "react-router-dom";
 import useWebSocket from "react-use-websocket";
 import { Reorder } from "framer-motion";
+
+import CardImage from "../components/CardImage";
+import LaydownList from "../components/LaydownList";
 
 function PlayPage() {
   const location = useLocation();
@@ -12,22 +15,12 @@ function PlayPage() {
   const [players, setPlayers] = useState([]);
   const [turn, setTurn] = useState("");
   const [hand, setHand] = useState([]);
+  const [handTapped, setHandTapped] = useState([]);
   const [trashCard, setTrashCard] = useState([]);
   const trashRef = useRef(null);
   const [hasDrawn, setHasDrawn] = useState(false);
-
-  const images = require.context("../assets", true);
-  const CardImage = forwardRef(({ name }, ref) => {
-    let imageSrc = "./" + name + ".png";
-    return (
-      <Image
-        ref={ref}
-        src={images(imageSrc)}
-        style={{ backgroundColor: "white", width: "5vw" }}
-        draggable={false}
-      />
-    );
-  });
+  const [isLaydown, setIsLayDown] = useState(false);
+  const [allLaydowns, setAllLaydowns] = useState({});
 
   useEffect(() => {
     // initialize players
@@ -48,12 +41,14 @@ function PlayPage() {
     }
     setPlayers(playerOrder);
 
-    // initialize turn, hand, and hasDrawn
+    // initialize states
     fetch("http://localhost:8000/game_info/" + location.state.user)
       .then((res) => res.json())
       .then((data) => {
         setTurn(data.turn);
         setHand(data.hand);
+        setHandTapped(new Array(data.hand.length).fill(false));
+        setAllLaydowns(data.allLaydowns);
         setHasDrawn(data.hasDrawn);
         if (data.trashCard !== null) {
           setTrashCard(data.trashCard);
@@ -65,13 +60,16 @@ function PlayPage() {
   useEffect(() => {
     let response = JSON.parse(lastJsonMessage);
     if (response !== null) {
+      if (response.user === location.state.user) {
+        setHand(response.hand);
+        setHandTapped(new Array(response.hand.length).fill(false));
+      }
       if (response.method === "trash") {
-        if (response.user === location.state.user) {
-          setHand(response.hand);
-        }
         setTrashCard(response.trashCard);
         setTurn(response.turn);
         setHasDrawn(response.hasDrawn);
+      } else if (response.method === "laydown") {
+        setAllLaydowns(response.allLaydowns);
       }
     }
   }, [turn, lastJsonMessage]);
@@ -89,6 +87,7 @@ function PlayPage() {
       .then((res) => res.json())
       .then((data) => {
         setHand(data.hand);
+        setHandTapped(new Array(data.hand.length).fill(false));
         setHasDrawn(data.hasDrawn);
       })
       .catch((err) => console.log(err));
@@ -104,50 +103,86 @@ function PlayPage() {
     sendJsonMessage(data);
   };
 
+  const addLaydown = () => {
+    let laydown = [];
+    for (let i = 0; i < handTapped.length; i++) {
+      if (handTapped[i]) {
+        laydown.push(hand[i]);
+      }
+    }
+    let data = {
+      user: location.state.user,
+      method: "laydown",
+      hand: hand,
+      laydown: laydown,
+    };
+    sendJsonMessage(data);
+  };
+
   return (
     <Container fluid style={{ height: "100vh" }}>
-      <Row style={{ height: "30%" }}>
-        <Col style={{ textAlign: "center" }}>
-          <h5 style={{ color: turn === players[2] ? "orange" : "white" }}>
-            {players[2]}
-          </h5>
-        </Col>
+      <Row style={{ height: "30%", textAlign: "center" }}>
+        <LaydownList
+          turn={turn}
+          player={players[2]}
+          laydowns={
+            allLaydowns[players[2]] !== undefined ? allLaydowns[players[2]] : []
+          }
+        />
       </Row>
       <Row style={{ height: "30%" }}>
         <Col>
-          <h5 style={{ color: turn === players[1] ? "orange" : "white" }}>
-            {players[1]}
-          </h5>
+          <LaydownList
+            turn={turn}
+            player={players[1]}
+            laydowns={
+              allLaydowns[players[1]] !== undefined
+                ? allLaydowns[players[1]]
+                : []
+            }
+          />
         </Col>
-        <Col style={{ textAlign: "center" }}>
-          <Row>
-            <Col>
-              <Button
-                variant="link"
-                onClick={drawCard}
-                disabled={location.state.user !== turn || hasDrawn}
-              >
-                <CardImage name="back@2x" />
-              </Button>
-            </Col>
-            <Col>
-              <CardImage
-                ref={trashRef}
-                name={trashCard.length === 0 ? "back@2x" : trashCard[0]}
-              />
-            </Col>
-          </Row>
+        <Col
+          style={{
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <Button
+            variant="link"
+            onClick={drawCard}
+            disabled={location.state.user !== turn || hasDrawn}
+          >
+            <CardImage name="back@2x" width="5vw" />
+          </Button>
+          <Button variant="link">
+            <CardImage
+              ref={trashRef}
+              name={trashCard.length === 0 ? "back@2x" : trashCard[0]}
+              width="5vw"
+            />
+          </Button>
         </Col>
         <Col style={{ textAlign: "right" }}>
-          <h5 style={{ color: turn === players[3] ? "orange" : "white" }}>
-            {players[3]}
-          </h5>
+          <LaydownList
+            turn={turn}
+            player={players[3]}
+            laydowns={
+              allLaydowns[players[3]] !== undefined
+                ? allLaydowns[players[3]]
+                : []
+            }
+          />
         </Col>
       </Row>
       <Row style={{ height: "40%", textAlign: "center" }}>
-        <h5 style={{ color: turn === players[0] ? "orange" : "white" }}>
-          {players[0]}
-        </h5>
+        <LaydownList
+          turn={turn}
+          player={players[0]}
+          laydowns={
+            allLaydowns[players[0]] !== undefined ? allLaydowns[players[0]] : []
+          }
+        />
         <Col>
           <Reorder.Group
             axis="x"
@@ -156,17 +191,29 @@ function PlayPage() {
             style={{ listStyleType: "none" }}
           >
             {hand !== null &&
-              hand.map((card) => {
+              hand.map((card, index) => {
                 return (
                   <Reorder.Item
                     key={card}
                     value={card}
                     style={{ display: "inline-block" }}
                     drag
+                    onTap={() => {
+                      if (isLaydown) {
+                        let copyHandTapped = [...handTapped];
+                        if (copyHandTapped[index]) {
+                          copyHandTapped[index] = false;
+                        } else {
+                          copyHandTapped[index] = true;
+                        }
+                        setHandTapped(copyHandTapped);
+                      }
+                    }}
                     onDragEnd={(_, info) => {
                       if (
                         location.state.user === turn &&
                         hasDrawn &&
+                        !isLaydown &&
                         trashRef.current.getBoundingClientRect().left <=
                           info.point.x &&
                         info.point.x <=
@@ -180,16 +227,42 @@ function PlayPage() {
                       }
                     }}
                   >
-                    <CardImage name={card[0]} />
+                    <CardImage
+                      name={card[0]}
+                      width="5vw"
+                      tapped={handTapped[index]}
+                    />
                   </Reorder.Item>
                 );
               })}
           </Reorder.Group>
         </Col>
         <Col xs={2}>
-          <Button disabled={location.state.user !== turn || !hasDrawn}>
-            Laydown
-          </Button>
+          {isLaydown ? (
+            <div>
+              <Button
+                onClick={addLaydown}
+                disabled={handTapped.filter((value) => value).length === 0}
+              >
+                Add Laydown
+              </Button>
+              <Button
+                onClick={() => {
+                  setHandTapped(new Array(hand.length).fill(false));
+                  setIsLayDown(false);
+                }}
+              >
+                Exit Laydown
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={() => setIsLayDown(true)}
+              disabled={location.state.user !== turn || !hasDrawn}
+            >
+              Laydown
+            </Button>
+          )}
         </Col>
       </Row>
     </Container>
