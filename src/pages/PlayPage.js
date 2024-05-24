@@ -76,7 +76,7 @@ function PlayPage() {
 
   const drawCard = () => {
     let data = { user: location.state.user, hand: hand };
-    fetch("http://localhost:8000/draw_card/", {
+    fetch("http://localhost:8000/draw_card", {
       method: "POST",
       headers: {
         Accept: "application/json",
