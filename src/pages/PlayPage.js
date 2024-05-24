@@ -55,7 +55,7 @@ function PlayPage() {
         }
       })
       .catch((err) => console.log(err));
-  }, []);
+  }, [location.state.players, location.state.user]);
 
   useEffect(() => {
     let response = JSON.parse(lastJsonMessage);
@@ -72,7 +72,7 @@ function PlayPage() {
         setAllLaydowns(response.allLaydowns);
       }
     }
-  }, [turn, lastJsonMessage]);
+  }, [location.state.user, turn, lastJsonMessage]);
 
   const drawCard = () => {
     let data = { user: location.state.user, hand: hand };
