@@ -64,7 +64,12 @@ function PlayPage() {
         setHand(response.hand);
         setHandTapped(new Array(response.hand.length).fill(false));
       }
-      if (response.method === "trash") {
+      if (response.method === "draw_from_deck") {
+        setHasDrawn(response.hasDrawn);
+      } else if (response.method === "draw_from_trash") {
+        setTrashCard(response.trashCard === null ? [] : response.trashCard);
+        setHasDrawn(response.hasDrawn);
+      } else if (response.method === "trash") {
         setTrashCard(response.trashCard);
         setTurn(response.turn);
         setHasDrawn(response.hasDrawn);
@@ -74,23 +79,13 @@ function PlayPage() {
     }
   }, [location.state.user, turn, lastJsonMessage]);
 
-  const drawCard = () => {
-    let data = { user: location.state.user, hand: hand };
-    fetch("http://localhost:8000/draw_card", {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setHand(data.hand);
-        setHandTapped(new Array(data.hand.length).fill(false));
-        setHasDrawn(data.hasDrawn);
-      })
-      .catch((err) => console.log(err));
+  const drawCard = (method) => {
+    let data = {
+      user: location.state.user,
+      method: "draw_from_" + method,
+      hand: hand,
+    };
+    sendJsonMessage(data);
   };
 
   const trash = (cardId) => {
@@ -150,12 +145,19 @@ function PlayPage() {
         >
           <Button
             variant="link"
-            onClick={drawCard}
+            onClick={() => drawCard("deck")}
             disabled={location.state.user !== turn || hasDrawn}
           >
             <CardImage name="back@2x" width="5vw" />
           </Button>
-          <Button variant="link">
+          <Button
+            variant="link"
+            onClick={() => {
+              if (location.state.user === turn && !hasDrawn) {
+                drawCard("trash");
+              }
+            }}
+          >
             <CardImage
               ref={trashRef}
               name={trashCard.length === 0 ? "back@2x" : trashCard[0]}
