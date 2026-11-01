@@ -5,6 +5,7 @@ import useWebSocket from "react-use-websocket";
 import { Reorder } from "framer-motion";
 
 import CardImage from "../components/CardImage";
+import GameOverBanner from "../components/GameOverBanner";
 import LaydownList from "../components/LaydownList";
 
 function PlayPage() {
@@ -21,6 +22,7 @@ function PlayPage() {
   const [hasDrawn, setHasDrawn] = useState(false);
   const [isLaydown, setIsLayDown] = useState(false);
   const [allLaydowns, setAllLaydowns] = useState({});
+  const [isGameOver, setIsGameOver] = useState(false);
 
   useEffect(() => {
     // initialize players
@@ -73,6 +75,9 @@ function PlayPage() {
         setTrashCard(response.trashCard);
         setTurn(response.turn);
         setHasDrawn(response.hasDrawn);
+        if (response.hand.length === 0) {
+          setIsGameOver(true);
+        }
       } else if (response.method === "laydown") {
         setAllLaydowns(response.allLaydowns);
       }
@@ -124,6 +129,7 @@ function PlayPage() {
             allLaydowns[players[2]] !== undefined ? allLaydowns[players[2]] : []
           }
         />
+        {isGameOver ? <GameOverBanner /> : null}
       </Row>
       <Row style={{ height: "30%" }}>
         <Col>
