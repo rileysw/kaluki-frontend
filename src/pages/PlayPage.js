@@ -22,7 +22,17 @@ function PlayPage() {
   const [hasDrawn, setHasDrawn] = useState(false);
   const [isLaydown, setIsLayDown] = useState(false);
   const [allLaydowns, setAllLaydowns] = useState({});
+  const laydownRefs = useRef(new Map());
   const [isGameOver, setIsGameOver] = useState(false);
+
+  const setLaydownRef = (owner, laydownIndex) => (node) => {
+    const key = `${owner}-${laydownIndex}`;
+    if (node) {
+      laydownRefs.current.set(key, { node, owner, laydownIndex });
+    } else {
+      laydownRefs.current.delete(key);
+    }
+  };
 
   useEffect(() => {
     // initialize players
@@ -78,7 +88,7 @@ function PlayPage() {
         if (response.hand.length === 0) {
           setIsGameOver(true);
         }
-      } else if (response.method === "laydown") {
+      } else if (response.method === "laydown" || response.method === "update_laydown") {
         setAllLaydowns(response.allLaydowns);
       }
     }
@@ -119,6 +129,18 @@ function PlayPage() {
     sendJsonMessage(data);
   };
 
+  const updateLaydown = (owner, laydownId, cardId) => {
+    let data = {
+      user: location.state.user,
+      method: "update_laydown",
+      hand: hand,
+      owner: owner,
+      laydownId: laydownId,
+      cardId: cardId
+    };
+    sendJsonMessage(data);
+  }
+
   return (
     <Container fluid style={{ height: "100vh" }}>
       <Row style={{ height: "30%", textAlign: "center" }}>
@@ -128,6 +150,8 @@ function PlayPage() {
           laydowns={
             allLaydowns[players[2]] !== undefined ? allLaydowns[players[2]] : []
           }
+          onUpdate={updateLaydown}
+          setRef={setLaydownRef}
         />
         {isGameOver ? <GameOverBanner /> : null}
       </Row>
@@ -141,6 +165,8 @@ function PlayPage() {
                 ? allLaydowns[players[1]]
                 : []
             }
+            onUpdate={updateLaydown}
+            setRef={setLaydownRef}
           />
         </Col>
         <Col
@@ -180,6 +206,8 @@ function PlayPage() {
                 ? allLaydowns[players[3]]
                 : []
             }
+            onUpdate={updateLaydown}
+            setRef={setLaydownRef}
           />
         </Col>
       </Row>
@@ -190,6 +218,8 @@ function PlayPage() {
           laydowns={
             allLaydowns[players[0]] !== undefined ? allLaydowns[players[0]] : []
           }
+          onUpdate={updateLaydown}
+          setRef={setLaydownRef}
         />
         <Col>
           <Reorder.Group
@@ -218,20 +248,31 @@ function PlayPage() {
                       }
                     }}
                     onDragEnd={(_, info) => {
-                      if (
-                        location.state.user === turn &&
-                        hasDrawn &&
-                        !isLaydown &&
-                        trashRef.current.getBoundingClientRect().left <=
-                          info.point.x &&
-                        info.point.x <=
-                          trashRef.current.getBoundingClientRect().right &&
-                        trashRef.current.getBoundingClientRect().top <=
-                          info.point.y &&
-                        info.point.y <=
-                          trashRef.current.getBoundingClientRect().bottom
-                      ) {
-                        trash(card[2]);
+                      if (location.state.user === turn && hasDrawn) {
+                        // Drag to update laydown
+                        if (isLaydown) {
+                          for (const { node, owner, laydownIndex } of laydownRefs.current.values()) {
+                            if (
+                              node.getBoundingClientRect().left <= info.point.x &&
+                              info.point.x <= node.getBoundingClientRect().right &&
+                              node.getBoundingClientRect().top <= info.point.y &&
+                              info.point.y <= node.getBoundingClientRect().bottom
+                            ) {
+                              updateLaydown(owner, laydownIndex, card[2]);
+                              break;
+                          }}
+                        }
+                        // Drag to discard
+                        if (!isLaydown) {
+                          if (
+                            trashRef.current.getBoundingClientRect().left <= info.point.x &&
+                            info.point.x <= trashRef.current.getBoundingClientRect().right &&
+                            trashRef.current.getBoundingClientRect().top <= info.point.y &&
+                            info.point.y <= trashRef.current.getBoundingClientRect().bottom
+                          ) {
+                            trash(card[2]);
+                          }
+                        }
                       }
                     }}
                   >

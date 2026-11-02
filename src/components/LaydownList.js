@@ -1,7 +1,7 @@
 import { Container } from "react-bootstrap";
 import CardImage from "./CardImage";
 
-function LaydownList({ turn, player, laydowns }) {
+function LaydownList({ turn, player, laydowns, onUpdate, setRef }) {
   return (
     <div>
       <h5 style={{ color: turn === player ? "orange" : "white" }}>{player}</h5>
@@ -15,13 +15,19 @@ function LaydownList({ turn, player, laydowns }) {
           rowGap: "20px",
         }}
       >
-        {laydowns.map((laydown) => (
-          <div>
-            {laydown.map((card) => (
-              <CardImage name={card[0]} width="3vw" />
-            ))}
-          </div>
-        ))}
+        {laydowns.map((laydown, laydownIndex) => {
+          const id = `${player}-${laydownIndex}`;
+          return (
+            <div
+              key={id}
+              ref={setRef(player, laydownIndex)}
+            >
+              {laydown.map((card) => (
+                <CardImage name={card[0]} width="3vw" />
+              ))}
+            </div>
+          );
+        })}
       </Container>
     </div>
   );
